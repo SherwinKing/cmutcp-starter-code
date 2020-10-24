@@ -15,7 +15,7 @@ git clone https://github.com/computer-networks/cmutcp-starter-code.git
 cd cmutcp-starter-code/15-441-project-2/
 git checkout aws_cloud9
 chmod +x install.sh
-sudo ./install.sh
+./install.sh
 make
 ```
 Now the environment should have all the dependencies needed for CP1. You can run 'make test' to ensure that the unit tests are passing for the 'stop-and-wait' model.
