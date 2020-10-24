@@ -26,6 +26,8 @@ testing_server: $(OBJ)
 format:
 	clang-format -i src/backend.c
 	clang-format -i src/cmu_tcp.c
+	clang-format -i src/server.c
+	clang-format -i src/client.c
 
 test:
 	sudo python3 tests/test_cp1.py

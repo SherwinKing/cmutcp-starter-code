@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-import pytest
 import subprocess
 from scapy.all import *
 import pwd
@@ -9,42 +8,7 @@ from fabric import Connection
 import time
 import socket
 
-CODE_DIR = '/vagrant/15-441-project-2'
-PCAP = '/vagrant/15-441-project-2/tests/test.pcap'
-IFNAME = 'enp0s8'
-
-# which host are we running this pytest script on, server or client?
-# if we are running pytest on the server VM, we want
-# the testing host to be the client VM and visa-versa
-HOSTNAME=subprocess.check_output('hostname').strip()
-if HOSTNAME.decode("utf-8")  == 'client':
-    TESTING_HOSTNAME = 'client'
-    HOSTNAME = 'client'
-elif HOSTNAME.decode("utf-8")  == 'server':
-    TESTING_HOSTNAME = 'server'
-    HOSTNAME = 'server'
-else:
-    raise Exception(
-        "Unexpected hostname: {}. You must run these tests in the client or server VM.".format(HOSTNAME))
-
-# you might need to update these for the network setting on your VMs
-IP_ADDRS = {'client': '10.0.0.2',
-            'server': '10.0.0.1'}
-MAC_ADDRS = {'client': '08:00:27:a7:fe:b1',
-            'server': '08:00:27:22:47:1c'}
-HOST_IP = IP_ADDRS[HOSTNAME]
-HOST_MAC = MAC_ADDRS[HOSTNAME]
-HOST_PORT = 1234
-TESTING_HOST_IP = IP_ADDRS[TESTING_HOSTNAME]
-TESTING_HOST_MAC = MAC_ADDRS[TESTING_HOSTNAME]
-TESTING_HOST_PORT = 15441
-# we can use these command to start/stop the testing server in a background process
-START_TESTING_SERVER_CMD = 'tmux new -s pytest_server -d /vagrant/15-441-project-2/tests/testing_server'
-STOP_TESTING_SERVER_CMD = 'tmux kill-session -t pytest_server'
-# default scapy packets headers we'll use to send packets
-eth = Ether(src=HOST_MAC, dst=TESTING_HOST_MAC)
-ip = IP(src=HOST_IP, dst=TESTING_HOST_IP)
-udp = UDP(sport=HOST_PORT, dport=TESTING_HOST_PORT)
+PCAP = '/home/ubuntu/environment/cmutcp-starter-code/15-441-project-2/tests/test.pcap'
 
 FIN_MASK = 0x2
 ACK_MASK = 0x4
@@ -59,6 +23,9 @@ All of the basic tests pass on the starter code, without
 you having to make any changes. You will need to change these
 tests as you add functionality to your implementation.
 """
+
+HOST_PORT = 1234
+TESTING_HOST_PORT = 15441
 
 # we can make CMUTCP packets using scapy
 class CMUTCP(Packet):
@@ -83,9 +50,6 @@ class CMUTCP(Packet):
 
     def answers(self, other):
         return (isinstance(other, CMUTCP))
-
-
-bind_layers(UDP, CMUTCP)
 
 def test_pcap_packets_max_size():
     """Basic test: Check packets are smaller than max size"""
@@ -134,39 +98,43 @@ def test_pcap_acks():
 def test_run_server_client():
     """Basic test: Run server and client, and initiate the file transfer process."""
     print("Running test_run_server_client()")
-    start_server_cmd = 'tmux new -s pytest_server -d /vagrant/15-441-project-2/server'
-    start_client_cmd = 'tmux new -s pytest_client -d /vagrant/15-441-project-2/client'
+    start_server_cmd = 'tmux new -s pytest_server -d /home/ubuntu/environment/cmutcp-starter-code/15-441-project-2/server'
+    start_client_cmd = 'tmux new -s pytest_client -d /home/ubuntu/environment/cmutcp-starter-code/15-441-project-2/client'
+    start_mitm_cmd = 'tmux new -s pytest_mitm -d /home/ubuntu/environment/cmutcp-starter-code/15-441-project-2/utils/mitm'
     stop_server_cmd = 'tmux kill-session -t pytest_server'
     stop_client_cmd = 'tmux kill-session -t pytest_client'
+    stop_mitm_cmd = 'tmux kill-session -t pytest_mitm'
 
     failed = False
-
-    with Connection(host=TESTING_HOST_IP, user='vagrant', connect_kwargs={'password':'vagrant'}) as conn:
+    
+    try:
+        os.system(start_mitm_cmd)
+        os.system('tmux has-session -t pytest_mitm')
+        os.system(start_client_cmd)
+        os.system('tmux has-session -t pytest_client')
+        os.system(start_server_cmd)
+        os.system('tmux has-session -t pytest_server')
+        # exit when server finished receiving file
+        os.system('while tmux has-session -t pytest_server; do sleep 1; done')
+    except:
+        failed = True
+    finally:
         try:
-            conn.run('pwd')
-            conn.run(start_client_cmd)
-            conn.run('tmux has-session -t pytest_client')
-            conn.local(start_server_cmd)
-            conn.local('tmux has-session -t pytest_server')
-            # exit when server finished receiving file
-            conn.local('while tmux has-session -t pytest_server; do sleep 1; done')
-        except:
-            failed = True
-        finally:
-            try:
-                conn.run('tmux has-session -t pytest_client')
-                conn.run(stop_client_cmd)
-            except Exception as e:
-                pass # Ignore error here that may occur if client already shut down
-            try:
-                conn.local('tmux has-session -t pytest_server')
-                conn.local(stop_server_cmd)
-            except Exception as e:
-                pass # Ignore error here that may occur if server already shut down
-            if failed:
-                print("Test failed")
-            else:
-                print("Test passed") 
+            os.system(stop_client_cmd)
+        except Exception as e:
+            pass # Ignore error here that may occur if client already shut down
+        try:
+            os.system(stop_server_cmd)
+        except Exception as e:
+            pass # Ignore error here that may occur if server already shut down
+        try:
+            os.system(stop_mitm_cmd)
+        except Exception as e:
+            pass # Ignore error here
+        if failed:
+            print("Test failed")
+        else:
+            print("Test passed") 
 
             
 def test_basic_reliable_data_transfer():

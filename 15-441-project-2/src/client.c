@@ -27,7 +27,7 @@ void functionality(cmu_socket_t  * sock){
     read = cmu_read(sock, buf, 200, NO_WAIT);
     printf("Read: %d\n", read);
 
-    fp = fopen("/vagrant/15-441-project-2/src/cmu_tcp.c", "rb");
+    fp = fopen("/home/ubuntu/environment/cmutcp-starter-code/15-441-project-2/src/cmu_tcp.c", "rb");
     read = 1;
     while(read > 0 ){
         read = fread(buf, 1, 2000, fp);
@@ -46,31 +46,20 @@ void functionality(cmu_socket_t  * sock){
  *
  */
 int main(int argc, char **argv) {
-	int portno;
+    int portno;
     char *serverip;
-    char *serverport;
     cmu_socket_t socket;
-    
-    serverip = getenv("server15441");
-    if (serverip) ;
-    else {
-        serverip = "10.0.0.1";
-    }
-
-    serverport = getenv("serverport15441");
-    if (serverport) ;
-    else {
-        serverport = "15441";
-    }
-    portno = (unsigned short)atoi(serverport);
-
-
-    if(cmu_socket(&socket, TCP_INITATOR, portno, serverip) < 0)
+  
+    serverip = "127.0.0.1";
+  
+    portno = 15441;
+  
+    if (cmu_socket(&socket, TCP_INITATOR, portno, serverip) < 0)
         exit(EXIT_FAILURE);
-    
+  
     functionality(&socket);
-
-    if(cmu_close(&socket) < 0)
-        exit(EXIT_FAILURE);
+    
+    if(cmu_close(&socket) < 0) exit(EXIT_FAILURE);
+  
     return EXIT_SUCCESS;
 }

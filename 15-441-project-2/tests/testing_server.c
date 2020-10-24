@@ -22,7 +22,7 @@ void functionality(cmu_socket_t  * sock){
    
     printf("read something %d\n", n);
     // Send over a random file
-    fp = fopen("/vagrant/15-441-project-2/tests/random.input", "rb");
+    fp = fopen("/home/ubuntu/environment/cmutcp-starter-code/15-441-project-2/tests/random.input", "rb");
     read = 1;
     while(read > 0 ){
         read = fread(buf, 1, 2000, fp);
